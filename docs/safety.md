@@ -18,6 +18,10 @@ The ledger stores opaque identifiers, a tool name, argument digest, state and JS
 
 Inspection omits arguments, raw receipts and callback exception text, but it still exposes identifiers and tool names. Do not treat it as anonymization. There is no authentication, tenant isolation, encrypted storage, quota management, retention policy or tamper-proof audit trail.
 
+The separate `review` path does not construct or initialize a ledger. It opens an existing regular file in SQLite read-only mode, uses `query_only` and a read transaction, and reports only pending/uncertain metadata. It validates displayed identifiers and SQLite-format timestamps, rejects special files, and omits argument hashes and receipts. It does not resolve, retry or authorize an operation. A pending callback may still be running. An empty result is not proof that all external work succeeded.
+
+The row cap limits output, not scan cost or hostile-file memory consumption; truncation is explicit and there is no continuation cursor. SQLite may use WAL coordination sidecars even with logical read-only access. `immutable=1` is intentionally not used because ignoring live WAL state would make review stale. Protect local files and use trusted database schemas; review is not a byte-for-byte forensic tool, authenticated user boundary or sandbox against concurrent hostile filesystem changes.
+
 ## Availability and deployment limits
 
 SQLite coordinates connections sharing the same intact local database. The design does not coordinate separate database copies, a restored older backup, network partitions, hostile writers, unsupported shared filesystems or deleted state. Pending claims can be orphaned even if the callback never started: conservative blocking is intentional. No mechanism interrupts a callback that hangs. This is a synchronous educational prototype, not a hosted service, framework patch, production reliability guarantee or exactly-once execution system.

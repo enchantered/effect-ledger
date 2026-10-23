@@ -10,8 +10,14 @@ Before publication, the release operator must:
 4. Run Gitleaks against reachable Git history as a separate check. Re-scan after any modification or new commit.
 5. Resolve licensing questions: this is original code, no external runtime dependency or copied forum reproduction is bundled, and no open-source license is asserted. Linked discussions remain on their original sites under their own terms. Public visibility is not an unrestricted reuse grant.
 6. Run unit tests and both offline demos. Inspect that demonstration databases and test artifacts remain untracked.
-7. Only after a clean gate, create a **new** public repository, push the audited commit, and compare the remote branch SHA and visibility with the local release. Never repurpose, delete, rewrite or modify an existing repository.
+7. For the initial release, only after a clean gate create a **new** public repository, push the audited commit, and compare the remote branch SHA and visibility with the local release. Do not repurpose, delete or rewrite unrelated repositories. Later authorized milestones may update this project only after repeating the gate.
 
 If a safety finding cannot be resolved, stop before publication. Report the category, file path and commit identifier (when applicable), never the sensitive matched text. Automated scanners do not prove that all PII or secrets are absent; manual review and a deliberately narrow file inventory remain necessary.
 
 Audit logs and test outputs are retained outside the repository by the release operator. This document describes the required gate, not a perpetual warranty about later user contributions. GitHub CI status should be reported from an observed run, not inferred from the presence of a workflow file.
+
+## October 23 update
+
+The read-only review milestone is an authorized update to the existing repository, not a new publication of older portfolio histories. The daily history is copied from the already-public Eval Gate documentation; no prior Git authorship, private user archive or raw source extraction is imported. Earlier relative decision links point to their original repositories, including a source that may require account access.
+
+The candidate must remain local until its tracked inventory, all reachable history, known owner-name indicators, available environment credential values, handle-only metadata and redacted Gitleaks checks pass. The original implementation and synthetic tests add no external runtime dependencies or assets. No open-source license or patent clearance is asserted. Validation for this milestone is 45 local tests plus fresh CLI smoke checks; remote CI success is not inferred.

@@ -6,7 +6,14 @@ The motivating problem appears in [recent framework issues and community discuss
 
 ## Run it in a minute
 
-Python 3.11+ and the standard library are enough. No package installation, API key, model download or network access is required. Run from the repository root:
+Python 3.11+ and the standard library are enough. Download and unzip the repository, or obtain it with Git:
+
+```sh
+git clone https://github.com/enchantered/effect-ledger.git
+cd effect-ledger
+```
+
+No package installation, API key, model download or runtime network access is required. Run from the repository root:
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -38,6 +45,17 @@ python3 -m effect_ledger demo --db local-data/uncertain.sqlite
 The CLI flag injects an **exception after the local insert**; it does not terminate your Python process. The test suite separately uses abrupt subprocess termination to exercise a true process-death window. In either case, the same operation cannot automatically replay. The exception demo records `uncertain`; abrupt process death leaves `pending`.
 
 `inspect` prints scope, operation ID, tool, state and timestamps—not arguments, argument hashes, receipts or raw callback errors. IDs and tool names are still visible: use synthetic or opaque values. Inspection creates an empty ledger if the path does not yet exist; it is not a read-only forensic tool.
+
+For unresolved operations, use the separate **read-only uncertainty review** command:
+
+```sh
+python3 -m effect_ledger review --db local-data/uncertain.sqlite
+python3 -m effect_ledger review --db local-data/uncertain.sqlite --limit 25 --scope demo
+```
+
+It emits JSON containing only `pending` and `uncertain` operation metadata, a `truncated` flag and `read_only: true`; the default page size is 100 (allowed range 1–1000). Pending can mean a process died or may still be running; uncertain means the action may have completed. Both require checking an authoritative outcome before any manual decision: the suggested next step is `inspect_authoritative_outcome_no_auto_retry`. **Review does not resolve, replay, clear or mutate operations.** Unlike `inspect`, it fails if the database is missing and does not initialize a ledger. SQLite may use WAL coordination sidecars, so this is logical read-only access—not byte-for-byte forensic access or a security sandbox.
+
+A successful review returns exit 0 even when operations need investigation: it reports state, not a successful external action. The row cap limits returned rows, not total database scan work; there is no next-page cursor. A truncated result is not the complete queue. Identifiers remain visible, so use opaque values. Read the [October 23 decision and technical mapping](docs/2026-10-23-decision.md), [living problem history](docs/consumer-behavior-log.md), and [portfolio arc](docs/portfolio-arc.md).
 
 CLI exits: **0** completed command; **1** safe operational/validation error; **2** blocked or uncertain demo. Argument-parser errors also use **2**. Parent directories must already exist. Use a persistent file, not a memory database or a SQLite URI.
 
