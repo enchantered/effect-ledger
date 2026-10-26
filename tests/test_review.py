@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -60,6 +61,25 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(got[0]["blocking_reason"], "may_still_be_running_or_process_died")
         self.assertEqual(got[1]["blocking_reason"], "action_may_have_completed")
         self.assertTrue(all(x["next_step"] == "inspect_authoritative_outcome_no_auto_retry" for x in got))
+
+    def test_age_fields_mark_old_unresolved_work_without_mutating_it(self):
+        self.add("s", "old", "pending")
+        self.add("s", "recent", "uncertain")
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        old = (now - timedelta(hours=73)).strftime("%Y-%m-%d %H:%M:%S")
+        recent = (now - timedelta(hours=71)).strftime("%Y-%m-%d %H:%M:%S")
+        with sqlite3.connect(self.db) as db:
+            db.execute("UPDATE operations SET created_at=? WHERE operation_id='old'", (old,))
+            db.execute("UPDATE operations SET created_at=? WHERE operation_id='recent'", (recent,))
+        before = sqlite3.connect(self.db).execute("SELECT operation_id,created_at FROM operations ORDER BY operation_id").fetchall()
+        rows = {row["operation_id"]: row for row in review(self.db)["operations"]}
+        after = sqlite3.connect(self.db).execute("SELECT operation_id,created_at FROM operations ORDER BY operation_id").fetchall()
+        self.assertEqual(before, after)
+        self.assertEqual(rows["old"]["age_hours"], 73)
+        self.assertTrue(rows["old"]["older_than_72_hours"])
+        self.assertEqual(rows["recent"]["age_hours"], 71)
+        self.assertFalse(rows["recent"]["older_than_72_hours"])
+        self.assertEqual(rows["old"]["next_step"], "inspect_authoritative_outcome_no_auto_retry")
 
     def test_succeeded_excluded(self):
         self.add("s", "success", "succeeded")

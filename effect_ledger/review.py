@@ -5,7 +5,7 @@ import re
 import sqlite3
 import stat
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -70,10 +70,15 @@ def review(path: str | Path, limit: int = DEFAULT_LIMIT, scope: str | None = Non
                 if type(timestamp) is not str or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", timestamp):
                     raise LedgerError("unable to review ledger")
                 datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+            created_at = datetime.strptime(created, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            age_seconds = (datetime.now(timezone.utc) - created_at).total_seconds()
+            age_hours = max(0, int(age_seconds // 3600))
             operations.append({
                 "scope": row["scope"], "operation_id": row["operation_id"],
                 "tool": row["tool"], "state": state,
                 "created_at": created, "updated_at": updated,
+                "age_hours": age_hours,
+                "older_than_72_hours": age_seconds >= 72 * 3600,
                 "blocking_reason": ("may_still_be_running_or_process_died" if state == "pending"
                                     else "action_may_have_completed"),
                 "next_step": "inspect_authoritative_outcome_no_auto_retry",
